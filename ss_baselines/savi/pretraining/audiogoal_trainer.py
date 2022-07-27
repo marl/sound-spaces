@@ -95,62 +95,72 @@ class AudioGoalPredictorTrainer:
                 running_regressor_corrects = 0
                 running_classifier_corrects = 0
 
+
                 # Iterating over data once is one epoch
-                for i, data in enumerate(tqdm(dataloaders[split])):
-                    # get the inputs
-                    inputs, gts = data
+                with torch.profiler.profile(
+                        schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=2),
+                        on_trace_ready=torch.profiler.tensorboard_trace_handler('/scratch/sd5397/logs/audiogoalpredictor'),
+                        record_shapes=True,
+                        profile_memory=True,
+                        with_stack=True
+                ) as prof:
+                    for i, data in enumerate(tqdm(dataloaders[split])):
+                        # get the inputs
+                        inputs, gts = data
 
-                    # remove alpha channel
-                    inputs = [x.to(device=self.device, dtype=torch.float) for x in inputs]
-                    gts = gts.to(device=self.device, dtype=torch.float)
+                        # remove alpha channel
+                        inputs = [x.to(device=self.device, dtype=torch.float) for x in inputs]
+                        gts = gts.to(device=self.device, dtype=torch.float)
 
-                    # zero the parameter gradients
-                    optimizer.zero_grad()
+                        # zero the parameter gradients
+                        optimizer.zero_grad()
 
-                    # forward
-                    predicts = model({input_type: x for input_type, x in zip(['spectrogram'], inputs)})
+                        # forward
+                        predicts = model({input_type: x for input_type, x in zip(['spectrogram'], inputs)})
 
-                    if self.predict_label and self.predict_location:
-                        classifier_loss = classifier_criterion(predicts[:, :-2], gts[:, 0].long())
-                        regressor_loss = regressor_criterion(predicts[:, -2:], gts[:, -2:])
-                    elif self.predict_label:
-                        classifier_loss = classifier_criterion(predicts, gts[:, 0].long())
-                        regressor_loss = torch.tensor([0], device=self.device)
-                    elif self.predict_location:
-                        regressor_loss = regressor_criterion(predicts, gts[:, -2:])
-                        classifier_loss = torch.tensor([0], device=self.device)
-                    else:
-                        raise ValueError('Must predict one item.')
-                    loss = classifier_loss + regressor_loss
+                        if self.predict_label and self.predict_location:
+                            classifier_loss = classifier_criterion(predicts[:, :-2], gts[:, 0].long())
+                            regressor_loss = regressor_criterion(predicts[:, -2:], gts[:, -2:])
+                        elif self.predict_label:
+                            classifier_loss = classifier_criterion(predicts, gts[:, 0].long())
+                            regressor_loss = torch.tensor([0], device=self.device)
+                        elif self.predict_location:
+                            regressor_loss = regressor_criterion(predicts, gts[:, -2:])
+                            classifier_loss = torch.tensor([0], device=self.device)
+                        else:
+                            raise ValueError('Must predict one item.')
+                        loss = classifier_loss + regressor_loss
 
-                    # backward + optimize only if in training phase
-                    if split == 'train':
-                        loss.backward()
-                        optimizer.step()
+                        # backward + optimize only if in training phase
+                        if split == 'train':
+                            loss.backward()
+                            optimizer.step()
 
-                    running_total_loss += loss.item() * gts.size(0)
-                    running_classifier_loss += classifier_loss.item() * gts.size(0)
-                    running_regressor_loss += regressor_loss.item() * gts.size(0)
+                        running_total_loss += loss.item() * gts.size(0)
+                        running_classifier_loss += classifier_loss.item() * gts.size(0)
+                        running_regressor_loss += regressor_loss.item() * gts.size(0)
 
-                    pred_x = np.round(predicts.cpu().detach().numpy())
-                    pred_y = np.round(predicts.cpu().detach().numpy())
-                    gt_x = np.round(gts.cpu().numpy())
-                    gt_y = np.round(gts.cpu().numpy())
+                        pred_x = np.round(predicts.cpu().detach().numpy())
+                        pred_y = np.round(predicts.cpu().detach().numpy())
+                        gt_x = np.round(gts.cpu().numpy())
+                        gt_y = np.round(gts.cpu().numpy())
 
-                    # hard accuracy
-                    if self.predict_label and self.predict_location:
-                        running_regressor_corrects += np.sum(np.bitwise_and(
-                            pred_x[:, -2] == gt_x[:, -2], pred_y[:, -1] == gt_y[:, -1]))
-                        running_classifier_corrects += torch.sum(
-                            torch.argmax(torch.abs(predicts[:, :-2]), dim=1) == gts[:, 0]).item()
-                    elif self.predict_label:
-                        running_classifier_corrects += torch.sum(
-                            torch.argmax(torch.abs(predicts), dim=1) == gts[:, 0]).item()
-                        running_regressor_corrects = 0
-                    elif self.predict_location:
-                        running_regressor_corrects += np.sum(np.bitwise_and(
-                            pred_x[:, 0] == gt_x[:, -2], pred_y[:, 1] == gt_y[:, -1]))
-                        running_classifier_corrects = 0
+                        # hard accuracy
+                        if self.predict_label and self.predict_location:
+                            running_regressor_corrects += np.sum(np.bitwise_and(
+                                pred_x[:, -2] == gt_x[:, -2], pred_y[:, -1] == gt_y[:, -1]))
+                            running_classifier_corrects += torch.sum(
+                                torch.argmax(torch.abs(predicts[:, :-2]), dim=1) == gts[:, 0]).item()
+                        elif self.predict_label:
+                            running_classifier_corrects += torch.sum(
+                                torch.argmax(torch.abs(predicts), dim=1) == gts[:, 0]).item()
+                            running_regressor_corrects = 0
+                        elif self.predict_location:
+                            running_regressor_corrects += np.sum(np.bitwise_and(
+                                pred_x[:, 0] == gt_x[:, -2], pred_y[:, 1] == gt_y[:, -1]))
+                            running_classifier_corrects = 0
+
+                        prof.step()
 
                 epoch_total_loss = running_total_loss / dataset_sizes[split]
                 epoch_regressor_loss = running_regressor_loss / dataset_sizes[split]
