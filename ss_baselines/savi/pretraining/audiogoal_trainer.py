@@ -105,6 +105,8 @@ class AudioGoalPredictorTrainer:
                         with_stack=True
                 ) as prof:
                     for i, data in enumerate(tqdm(dataloaders[split])):
+                        if i >= (1 + 1 + 3) * 2:
+                            break
                         # get the inputs
                         inputs, gts = data
 
