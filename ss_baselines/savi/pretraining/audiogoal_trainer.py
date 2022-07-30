@@ -105,6 +105,7 @@ class AudioGoalPredictorTrainer:
                         with_stack=True
                 ) as prof:
                     for i, data in enumerate(tqdm(dataloaders[split])):
+                        print(i)
                         if i >= (1 + 1 + 3) * 2:
                             break
                         # get the inputs
@@ -113,12 +114,14 @@ class AudioGoalPredictorTrainer:
                         # remove alpha channel
                         inputs = [x.to(device=self.device, dtype=torch.float) for x in inputs]
                         gts = gts.to(device=self.device, dtype=torch.float)
+                        print("inputs", len(inputs))
 
                         # zero the parameter gradients
                         optimizer.zero_grad()
 
                         # forward
                         predicts = model({input_type: x for input_type, x in zip(['spectrogram'], inputs)})
+                        print("predicts", predicts)
 
                         if self.predict_label and self.predict_location:
                             classifier_loss = classifier_criterion(predicts[:, :-2], gts[:, 0].long())
@@ -132,20 +135,24 @@ class AudioGoalPredictorTrainer:
                         else:
                             raise ValueError('Must predict one item.')
                         loss = classifier_loss + regressor_loss
+                        print("loss", loss)
 
                         # backward + optimize only if in training phase
                         if split == 'train':
                             loss.backward()
                             optimizer.step()
+                        prof.step()
 
                         running_total_loss += loss.item() * gts.size(0)
                         running_classifier_loss += classifier_loss.item() * gts.size(0)
                         running_regressor_loss += regressor_loss.item() * gts.size(0)
+                        print("loss2", running_regressor_loss)
 
                         pred_x = np.round(predicts.cpu().detach().numpy())
                         pred_y = np.round(predicts.cpu().detach().numpy())
                         gt_x = np.round(gts.cpu().numpy())
                         gt_y = np.round(gts.cpu().numpy())
+                        print("gt_y", gt_y)
 
                         # hard accuracy
                         if self.predict_label and self.predict_location:
@@ -162,7 +169,7 @@ class AudioGoalPredictorTrainer:
                                 pred_x[:, 0] == gt_x[:, -2], pred_y[:, 1] == gt_y[:, -1]))
                             running_classifier_corrects = 0
 
-                        prof.step()
+                        print(i, "end")
 
                 epoch_total_loss = running_total_loss / dataset_sizes[split]
                 epoch_regressor_loss = running_regressor_loss / dataset_sizes[split]
