@@ -27,10 +27,10 @@ class AudioGoalPredictorTrainer:
         self.device = (torch.device("cuda", 0))
 
         self.batch_size = 1024
-        self.num_worker = 8
+        self.num_worker = 16 # original 8
         self.lr = 1e-3
         self.weight_decay = None
-        self.num_epoch = 50
+        self.num_epoch = 5 # orginal 50
         self.audiogoal_predictor = AudioGoalPredictor(predict_label=predict_label,
                                                       predict_location=predict_location).to(device=self.device)
         self.predict_label = predict_label
@@ -78,35 +78,38 @@ class AudioGoalPredictorTrainer:
         best_acc = 0
         best_model_wts = None
         num_epoch = self.num_epoch if 'train' in splits else 1
-        for epoch in range(num_epoch):
-            logging.info('-' * 10)
-            logging.info('Epoch {}/{}'.format(epoch, num_epoch))
+        with torch.profiler.profile(
+                activities=[
+                    torch.profiler.ProfilerActivity.CPU,
+                    torch.profiler.ProfilerActivity.CUDA,
+                ],
+                schedule=torch.profiler.schedule(
+                    wait=0,
+                    warmup=0,
+                    active=5),
+                on_trace_ready=torch.profiler.tensorboard_trace_handler('/scratch/sd5397/profiler4')
+        ) as prof:
+            for epoch in range(num_epoch):
+                logging.info('-' * 10)
+                logging.info('Epoch {}/{}'.format(epoch, num_epoch))
 
-            # Each epoch has a training and validation phase
-            for split in splits:
-                if split == 'train':
-                    self.audiogoal_predictor.train()  # Set model to training mode
-                else:
-                    self.audiogoal_predictor.eval()  # Set model to evaluate mode
+                # Each epoch has a training and validation phase
+                for split in splits:
+                    if split == 'train':
+                        self.audiogoal_predictor.train()  # Set model to training mode
+                    else:
+                        self.audiogoal_predictor.eval()  # Set model to evaluate mode
 
-                running_total_loss = 0.0
-                running_regressor_loss = 0.0
-                running_classifier_loss = 0.0
-                running_regressor_corrects = 0
-                running_classifier_corrects = 0
+                    running_total_loss = 0.0
+                    running_regressor_loss = 0.0
+                    running_classifier_loss = 0.0
+                    running_regressor_corrects = 0
+                    running_classifier_corrects = 0
 
 
-                # Iterating over data once is one epoch
-                with torch.profiler.profile(
-                        schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=2),
-                        on_trace_ready=torch.profiler.tensorboard_trace_handler('/scratch/sd5397/logs/audiogoalpredictor'),
-                        record_shapes=True,
-                        profile_memory=True,
-                        with_stack=True
-                ) as prof:
+                    # Iterating over data once is one epoch
                     for i, data in enumerate(tqdm(dataloaders[split])):
-                        print(i)
-                        if i >= (1 + 1 + 3) * 2:
+                        if i >= 100:
                             break
                         # get the inputs
                         inputs, gts = data
@@ -114,14 +117,12 @@ class AudioGoalPredictorTrainer:
                         # remove alpha channel
                         inputs = [x.to(device=self.device, dtype=torch.float) for x in inputs]
                         gts = gts.to(device=self.device, dtype=torch.float)
-                        print("inputs", len(inputs))
 
                         # zero the parameter gradients
                         optimizer.zero_grad()
 
                         # forward
                         predicts = model({input_type: x for input_type, x in zip(['spectrogram'], inputs)})
-                        print("predicts", predicts)
 
                         if self.predict_label and self.predict_location:
                             classifier_loss = classifier_criterion(predicts[:, :-2], gts[:, 0].long())
@@ -135,24 +136,20 @@ class AudioGoalPredictorTrainer:
                         else:
                             raise ValueError('Must predict one item.')
                         loss = classifier_loss + regressor_loss
-                        print("loss", loss)
 
                         # backward + optimize only if in training phase
                         if split == 'train':
                             loss.backward()
                             optimizer.step()
-                        prof.step()
 
                         running_total_loss += loss.item() * gts.size(0)
                         running_classifier_loss += classifier_loss.item() * gts.size(0)
                         running_regressor_loss += regressor_loss.item() * gts.size(0)
-                        print("loss2", running_regressor_loss)
 
                         pred_x = np.round(predicts.cpu().detach().numpy())
                         pred_y = np.round(predicts.cpu().detach().numpy())
                         gt_x = np.round(gts.cpu().numpy())
                         gt_y = np.round(gts.cpu().numpy())
-                        print("gt_y", gt_y)
 
                         # hard accuracy
                         if self.predict_label and self.predict_location:
@@ -169,35 +166,37 @@ class AudioGoalPredictorTrainer:
                                 pred_x[:, 0] == gt_x[:, -2], pred_y[:, 1] == gt_y[:, -1]))
                             running_classifier_corrects = 0
 
-                        print(i, "end")
 
-                epoch_total_loss = running_total_loss / dataset_sizes[split]
-                epoch_regressor_loss = running_regressor_loss / dataset_sizes[split]
-                epoch_classifier_loss = running_classifier_loss / dataset_sizes[split]
-                epoch_regressor_acc = running_regressor_corrects / dataset_sizes[split]
-                epoch_classifier_acc = running_classifier_corrects / dataset_sizes[split]
-                if writer is not None:
-                    writer.add_scalar(f'Loss/{split}_total', epoch_total_loss, epoch)
-                    writer.add_scalar(f'Loss/{split}_classifier', epoch_classifier_loss, epoch)
-                    writer.add_scalar(f'Loss/{split}_regressor', epoch_regressor_loss, epoch)
-                    writer.add_scalar(f'Accuracy/{split}_classifier', epoch_classifier_acc, epoch)
-                    writer.add_scalar(f'Accuracy/{split}_regressor', epoch_regressor_acc, epoch)
-                logging.info(f'{split.upper()} Total loss: {epoch_total_loss:.4f}, '
-                             f'label loss: {epoch_classifier_loss:.4f}, xy loss: {epoch_regressor_loss},'
-                             f' label acc: {epoch_classifier_acc:.4f}, xy acc: {epoch_regressor_acc}')
+                    epoch_total_loss = running_total_loss / dataset_sizes[split]
+                    epoch_regressor_loss = running_regressor_loss / dataset_sizes[split]
+                    epoch_classifier_loss = running_classifier_loss / dataset_sizes[split]
+                    epoch_regressor_acc = running_regressor_corrects / dataset_sizes[split]
+                    epoch_classifier_acc = running_classifier_corrects / dataset_sizes[split]
+                    if writer is not None:
+                        writer.add_scalar(f'Loss/{split}_total', epoch_total_loss, epoch)
+                        writer.add_scalar(f'Loss/{split}_classifier', epoch_classifier_loss, epoch)
+                        writer.add_scalar(f'Loss/{split}_regressor', epoch_regressor_loss, epoch)
+                        writer.add_scalar(f'Accuracy/{split}_classifier', epoch_classifier_acc, epoch)
+                        writer.add_scalar(f'Accuracy/{split}_regressor', epoch_regressor_acc, epoch)
+                    logging.info(f'{split.upper()} Total loss: {epoch_total_loss:.4f}, '
+                                 f'label loss: {epoch_classifier_loss:.4f}, xy loss: {epoch_regressor_loss},'
+                                 f' label acc: {epoch_classifier_acc:.4f}, xy acc: {epoch_regressor_acc}')
 
-                # deep copy the model
-                if self.predict_label and self.predict_location:
-                    target_acc = epoch_regressor_acc + epoch_classifier_acc
-                elif self.predict_location:
-                    target_acc = epoch_regressor_acc
-                else:
-                    target_acc = epoch_classifier_acc
+                    # deep copy the model
+                    if self.predict_label and self.predict_location:
+                        target_acc = epoch_regressor_acc + epoch_classifier_acc
+                    elif self.predict_location:
+                        target_acc = epoch_regressor_acc
+                    else:
+                        target_acc = epoch_classifier_acc
 
-                if split == 'val' and target_acc > best_acc:
-                    best_acc = target_acc
-                    best_model_wts = copy.deepcopy(model.state_dict())
-                    self.save_checkpoint(f"ckpt.{epoch}.pth")
+                    if split == 'val' and target_acc > best_acc:
+                        best_acc = target_acc
+                        best_model_wts = copy.deepcopy(model.state_dict())
+                        self.save_checkpoint(f"ckpt.{epoch}.pth")
+                prof.step()
+        print(prof.key_averages().table(
+            sort_by="self_cuda_time_total", row_limit=-1))
 
         self.save_checkpoint(f"best_val.pth", checkpoint={"audiogoal_predictor": best_model_wts})
 
