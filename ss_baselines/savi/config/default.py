@@ -227,6 +227,7 @@ def merge_from_path(config, config_paths):
 
         for config_path in config_paths:
             config.merge_from_file(config_path)
+    # print(config, "end")
     return config
 
 
@@ -249,11 +250,15 @@ def get_config(
         run_type: either train or eval
     """
     config = merge_from_path(_C.clone(), config_paths)
+    print("start\n",config.TASK_CONFIG,"end\n")
     config.TASK_CONFIG = get_task_config(config_paths=config.BASE_TASK_CONFIG_PATH)
+    print(config.TASK_CONFIG)
 
     # config_name = os.path.basename(config_paths).split('.')[0]
     if model_dir is not None:
         config.MODEL_DIR = model_dir
+    # print(3, config.MODEL_DIR)
+    # create a set of storage dir paths in config
     config.TENSORBOARD_DIR = os.path.join(config.MODEL_DIR, 'tb')
     config.CHECKPOINT_FOLDER = os.path.join(config.MODEL_DIR, 'data')
     config.VIDEO_DIR = os.path.join(config.MODEL_DIR, 'video_dir')
@@ -315,4 +320,5 @@ def get_task_config(
         config.merge_from_list(opts)
 
     config.freeze()
+    # print(2, config)
     return config

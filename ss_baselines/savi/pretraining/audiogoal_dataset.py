@@ -4,6 +4,7 @@ from itertools import product
 import logging
 import copy
 import random
+import time
 
 import librosa
 import numpy as np
@@ -99,13 +100,22 @@ class AudioGoalDataset(Dataset):
 
     def __getitem__(self, item):
         if (self.use_cache and self.data[item] is None) or not self.use_cache:
+            # get = time.time()
+            # print("get", get)
             rir_file, sound_file = self.files[item]
+            # step2 = time.time()-get
+            # print(2, step2)
             audiogoal = self.compute_audiogoal(rir_file, sound_file)
+            # step3 = time.time()-step2-get
+            # print(3, step3)
             spectrogram = to_tensor(self.compute_spectrogram(audiogoal))
             inputs_outputs = ([spectrogram], self.goals[item])
+            # step4 = time.time()-step3-step2-get
+            # print(4, step4)
 
             if self.use_cache:
                 self.data[item] = inputs_outputs
+            # print("getover", time.time()-get)
         else:
             inputs_outputs = self.data[item]
 
