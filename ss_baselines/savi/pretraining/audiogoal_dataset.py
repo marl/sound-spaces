@@ -49,8 +49,8 @@ class AudioGoalDataset(Dataset):
                 goal_xy = self._compute_goal_xy(delta_x, delta_y, angle, use_polar_coordinates)
 
                 goal = to_tensor(np.zeros(3))
-                goal[0] = index
-                goal[1:] = goal_xy
+                goal[0] = index # ground truth category label
+                goal[1:] = goal_xy # ground truth ∆x, ∆y
                 goals.append(goal)
 
             self.goals += goals
@@ -99,14 +99,14 @@ class AudioGoalDataset(Dataset):
 
     def __getitem__(self, item):
         if (self.use_cache and self.data[item] is None) or not self.use_cache:
-            rir_file, sound_file = self.files[item]
+            rir_file, sound_file = self.files[item] # input source
             audiogoal = self.compute_audiogoal(rir_file, sound_file)
             spectrogram = to_tensor(self.compute_spectrogram(audiogoal))
-            inputs_outputs = ([spectrogram], self.goals[item])
+            inputs_outputs = ([spectrogram], self.goals[item]) # (inputs, labels)
 
-            if self.use_cache:
+            if self.use_cache: # cache new data for future use
                 self.data[item] = inputs_outputs
-        else:
+        else: # when data is cached !None
             inputs_outputs = self.data[item]
 
         return inputs_outputs

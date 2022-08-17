@@ -27,7 +27,7 @@ class AudioGoalPredictorTrainer:
         self.device = (torch.device("cuda", 0))
 
         self.batch_size = 1024
-        self.num_worker = 8
+        self.num_worker = 20 # 8
         self.lr = 1e-3
         self.weight_decay = None
         self.num_epoch = 50
@@ -142,10 +142,10 @@ class AudioGoalPredictorTrainer:
                         running_regressor_corrects += np.sum(np.bitwise_and(
                             pred_x[:, -2] == gt_x[:, -2], pred_y[:, -1] == gt_y[:, -1]))
                         running_classifier_corrects += torch.sum(
-                            torch.argmax(torch.abs(predicts[:, :-2]), dim=1) == gts[:, 0]).item()
-                    elif self.predict_label:
+                            torch.argmax(predicts[:, :-2], dim=1) == gts[:, 0]).item()
+                    elif self.predict_label: # correct rates without CE
                         running_classifier_corrects += torch.sum(
-                            torch.argmax(torch.abs(predicts), dim=1) == gts[:, 0]).item()
+                            torch.argmax(predicts, dim=1) == gts[:, 0]).item()
                         running_regressor_corrects = 0
                     elif self.predict_location:
                         running_regressor_corrects += np.sum(np.bitwise_and(
@@ -159,9 +159,9 @@ class AudioGoalPredictorTrainer:
                 epoch_classifier_acc = running_classifier_corrects / dataset_sizes[split]
                 if writer is not None:
                     writer.add_scalar(f'Loss/{split}_total', epoch_total_loss, epoch)
-                    writer.add_scalar(f'Loss/{split}_classifier', epoch_classifier_loss, epoch)
+                    writer.add_scalar(f'Loss/{split}_classifier', epoch_classifier_loss, epoch) #
                     writer.add_scalar(f'Loss/{split}_regressor', epoch_regressor_loss, epoch)
-                    writer.add_scalar(f'Accuracy/{split}_classifier', epoch_classifier_acc, epoch)
+                    writer.add_scalar(f'Accuracy/{split}_classifier', epoch_classifier_acc, epoch) #
                     writer.add_scalar(f'Accuracy/{split}_regressor', epoch_regressor_acc, epoch)
                 logging.info(f'{split.upper()} Total loss: {epoch_total_loss:.4f}, '
                              f'label loss: {epoch_classifier_loss:.4f}, xy loss: {epoch_regressor_loss},'
@@ -240,7 +240,7 @@ def main():
 
     log_dir = os.path.join(args.model_dir, 'tb')
     if args.run_type == 'train' and os.path.exists(log_dir):
-        shutil.rmtree(log_dir)
+        shutil.rmtree(log_dir) # rewrite log dir
 
     audiogoal_predictor_trainer = AudioGoalPredictorTrainer(config, args.model_dir, predict_location=args.predict_location,
                                                             predict_label=args.predict_label)
