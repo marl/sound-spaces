@@ -6,7 +6,7 @@
 #SBATCH --nodes 16
 #SBATCH --cpus-per-task 10
 #SBATCH --ntasks-per-node 2
-#SBATCH --mem=60GB
+#SBATCH --mem=60GB # 3G per cpu
 #SBATCH --time=1440:00
 #SBATCH --constraint=volta32gb
 #SBATCH --signal=USR1@600

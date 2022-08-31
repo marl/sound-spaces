@@ -31,7 +31,7 @@ class SemanticAudioNavDataset(Dataset):
     goals_by_category: Dict[str, List[SemanticAudioGoal]]
 
     @staticmethod
-    def check_config_paths_exist(config: Config) -> bool:
+    def check_config_paths_exist(config: Config) -> bool: #config.TASK_CONFIG.DATASET
         return os.path.exists(
             config.DATA_PATH.format(version=config.VERSION, split=config.SPLIT)
         ) and os.path.exists(config.SCENES_DIR)

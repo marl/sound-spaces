@@ -45,7 +45,7 @@ class AudioNavRLEnv(habitat.RLEnv):
         self._previous_action = None
         self._episode_distance_covered = None
         self._success_distance = self._core_env_config.TASK.SUCCESS.SUCCESS_DISTANCE
-        super().__init__(self._core_env_config, dataset)
+        super().__init__(self._core_env_config, dataset) # passing TASK_CONFIG
 
     def reset(self):
         self._previous_action = None

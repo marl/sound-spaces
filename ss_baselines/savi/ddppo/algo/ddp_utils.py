@@ -153,7 +153,7 @@ def init_distrib_slurm(
         local_rank = int(os.environ["LOCAL_RANK"])
         world_rank = int(os.environ["RANK"])
         world_size = int(os.environ["WORLD_SIZE"])
-    # Else parse from SLURM is using SLURM
+    # Else parse from SLURM if using SLURM
     elif os.environ.get("SLURM_JOBID", None) is not None:
         local_rank = int(os.environ["SLURM_LOCALID"])
         world_rank = int(os.environ["SLURM_PROCID"])

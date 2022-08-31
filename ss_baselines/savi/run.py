@@ -95,7 +95,7 @@ def main():
     config = get_config(args.exp_config, args.opts, args.model_dir, args.run_type, args.overwrite)
     trainer_init = baseline_registry.get_trainer(config.TRAINER_NAME)
     assert trainer_init is not None, f"{config.TRAINER_NAME} is not supported"
-    trainer = trainer_init(config)
+    trainer = trainer_init(config) # init with original config
     torch.set_num_threads(1)
 
     level = logging.DEBUG if config.DEBUG else logging.INFO

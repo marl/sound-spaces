@@ -31,7 +31,7 @@ class RolloutStorage:
         num_recurrent_layers=1,
     ):
         self.observations = {}
-
+        # creating empty tensors in observations
         for sensor in observation_space.spaces:
             self.observations[sensor] = torch.zeros(
                 num_steps + 1,

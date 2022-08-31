@@ -55,7 +55,7 @@ class DDPPOTrainer(PPOTrainer):
         if interrupted_state is not None:
             config = interrupted_state["config"]
 
-        super().__init__(config)
+        super().__init__(config) # config in base trainer, all other = None
 
     def _setup_actor_critic_agent(self, ppo_cfg: Config, observation_space=None) -> None:
         r"""Sets up actor critic and agent for DD-PPO.
@@ -96,7 +96,7 @@ class DDPPOTrainer(PPOTrainer):
                     self.belief_predictor.optimizer = torch.optim.Adam(params, lr=belief_cfg.lr)
                 self.belief_predictor.freeze_encoders()
 
-        elif ppo_cfg.policy_type == 'smt':
+        elif ppo_cfg.policy_type == 'smt': # for savi
             smt_cfg = ppo_cfg.SCENE_MEMORY_TRANSFORMER
             belief_cfg = ppo_cfg.BELIEF_PREDICTOR
             self.actor_critic = AudioNavSMTPolicy(
@@ -227,7 +227,7 @@ class DDPPOTrainer(PPOTrainer):
 
         self.envs = construct_envs(
             self.config, get_env_class(self.config.ENV_NAME)
-        )
+        ) #(config, AudioNavRLEnv class in environments.py) -> returns a VectorEnv class
 
         ppo_cfg = self.config.RL.PPO
         if (
@@ -267,6 +267,10 @@ class DDPPOTrainer(PPOTrainer):
         batch = batch_obs(observations, device=self.device)
 
         obs_space = self.envs.observation_spaces[0]
+        # print("obs_space")
+        # print(obs_space)
+        # print(obs_space.shape)
+        # print(self.envs.observation_spaces)
         if ppo_cfg.use_external_memory:
             memory_dim = self.actor_critic.net.memory_dim
         else:
@@ -283,15 +287,21 @@ class DDPPOTrainer(PPOTrainer):
             ppo_cfg.SCENE_MEMORY_TRANSFORMER.memory_size,
             memory_dim,
             num_recurrent_layers=self.actor_critic.net.num_recurrent_layers,
-        )
+        ) # rollouts is just full of configurations
         rollouts.to(self.device)
 
         if self.config.RL.PPO.use_belief_predictor:
             self.belief_predictor.update(batch, None)
 
-        for sensor in rollouts.observations:
-            rollouts.observations[sensor][0].copy_(batch[sensor])
+        # for sensor in rollouts.observations:
+        #     print(sensor, batch[sensor].shape)
 
+        for sensor in rollouts.observations:
+            # copy batch inputs to rollouts observations
+            print("rollouts",sensor,
+                  rollouts.observations[sensor][0].shape,
+                  batch[sensor].shape)
+            rollouts.observations[sensor][0].copy_(batch[sensor])
         # batch and observations may contain shared PyTorch CUDA
         # tensors.  We must explicitly clear them here otherwise
         # they will be kept in memory for the entire duration of training!

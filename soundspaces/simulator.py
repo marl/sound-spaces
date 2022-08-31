@@ -131,8 +131,11 @@ class SoundSpacesSim(Simulator, ABC):
         self._house_readers = dict()
         self._use_oracle_planner = True
         self._oracle_actions = list()
+        # print(self.config)
+        # print(self.config.SCENE_DATASET)
 
         self.points, self.graph = load_metadata(self.metadata_dir)
+        # print("through")
         for node in self.graph.nodes():
             self._position_to_index_mapping[self.position_encoding(self.graph.nodes()[node]['point'])] = node
 
@@ -321,7 +324,9 @@ class SoundSpacesSim(Simulator, ABC):
         return self.config.AUDIO.DISTRACTOR_SOUND_DIR
 
     @property
-    def metadata_dir(self):
+    def metadata_dir(self): # config = config.simulator data/metadata, mp3d, id
+        # print(self.config)
+        # print(self.config.AUDIO.METADATA_DIR, self.config.SCENE_DATASET, self.current_scene_name)
         return os.path.join(self.config.AUDIO.METADATA_DIR, self.config.SCENE_DATASET, self.current_scene_name)
 
     @property
@@ -467,7 +472,7 @@ class SoundSpacesSim(Simulator, ABC):
 
     def reset(self):
         logging.debug('Reset simulation')
-        if self.config.USE_RENDERED_OBSERVATIONS:
+        if self.config.USE_RENDERED_OBSERVATIONS: # true
             sim_obs = self._get_sim_observation()
             self._sim.set_sensor_observations(sim_obs)
         else:
@@ -480,6 +485,7 @@ class SoundSpacesSim(Simulator, ABC):
         self._previous_step_collided = False
         # Encapsule data under Observations class
         observations = self._sensor_suite.get_observations(sim_obs)
+        print("in sim reset", observations)
 
         return observations
 

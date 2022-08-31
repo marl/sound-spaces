@@ -85,6 +85,10 @@ class SMTCNN(nn.Module):
             cnn_features.append(self.rgb_encoder(rgb_observations))
 
         if "depth" in self.input_modalities:
+            # for k,v in observations.items():
+            #     print(k)
+            #     print(v.shape)
+            # input()
             depth_observations = observations["depth"]
             # permute tensor to dimension [BATCH x CHANNEL x HEIGHT X WIDTH]
             depth_observations = depth_observations.permute(0, 3, 1, 2)

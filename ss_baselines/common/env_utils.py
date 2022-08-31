@@ -41,7 +41,7 @@ def construct_envs(
     num_processes = config.NUM_PROCESSES
     configs = []
     env_classes = [env_class for _ in range(num_processes)]
-    dataset = make_dataset(config.TASK_CONFIG.DATASET.TYPE)
+    dataset = make_dataset(config.TASK_CONFIG.DATASET.TYPE) # make SemanticAudioNav dataset
     scenes = dataset.get_scenes_to_load(config.TASK_CONFIG.DATASET)
     if not config.TASK_CONFIG.SIMULATOR.USE_RENDERED_OBSERVATIONS and '2n8kARJN3HM' in scenes:
         # this scene does not work for continuous rendering
@@ -93,18 +93,17 @@ def construct_envs(
         logging.info('Using SyncVectorEnv')
     elif config.USE_VECENV:
         env_launcher = habitat.VectorEnv
-        logging.info('Using VectorEnv')
+        logging.info('Using VectorEnv') # for savi
     else:
         env_launcher = habitat.ThreadedVectorEnv
         logging.info('Using ThreadedVectorEnv')
-
     envs = env_launcher(
         make_env_fn=make_env_fn,
         env_fn_args=tuple(
             tuple(zip(configs, env_classes, range(num_processes)))),
         auto_reset_done=auto_reset_done
-    )
-    return envs
+    ) # initialize env_classes = AudioNavRLEnv classes here
+    return envs # return a vector Env class
 
 
 def make_env_fn(
@@ -130,7 +129,7 @@ def make_env_fn(
 
     dataset = make_dataset(
         config.TASK_CONFIG.DATASET.TYPE, config=config.TASK_CONFIG.DATASET
-    )
+    ) # (SemanticAudioNav, dataset)
     env = env_class(config=config, dataset=dataset)
     env.seed(rank)
     return env

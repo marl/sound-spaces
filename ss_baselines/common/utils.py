@@ -139,16 +139,21 @@ def batch_obs(
     """
     batch = defaultdict(list)
 
+    # print("in obs")
     for obs in observations:
         for sensor in obs:
             if sensor in skip_list:
                 continue
             batch[sensor].append(to_tensor(obs[sensor]).float())
 
+    # print('depth', len(batch['depth']), batch['depth'][0].shape)
+    # print('category', len(batch['category']), batch['category'][0].shape)
+    # print("in batch")
     for sensor in batch:
         batch[sensor] = torch.stack(batch[sensor], dim=0).to(
             device=device, dtype=torch.float
         )
+        # print(sensor, batch[sensor].shape)
 
     return batch
 
