@@ -485,7 +485,7 @@ class SoundSpacesSim(Simulator, ABC):
         self._previous_step_collided = False
         # Encapsule data under Observations class
         observations = self._sensor_suite.get_observations(sim_obs)
-        print("in sim reset", observations)
+        # print("in sim reset", observations)
 
         return observations
 

@@ -144,6 +144,9 @@ def batch_obs(
         for sensor in obs:
             if sensor in skip_list:
                 continue
+            if sensor == 'depth':
+                # squeeze obs arrays
+                obs[sensor] = np.squeeze(obs[sensor], axis=3)
             batch[sensor].append(to_tensor(obs[sensor]).float())
 
     # print('depth', len(batch['depth']), batch['depth'][0].shape)

@@ -298,9 +298,9 @@ class DDPPOTrainer(PPOTrainer):
 
         for sensor in rollouts.observations:
             # copy batch inputs to rollouts observations
-            print("rollouts",sensor,
-                  rollouts.observations[sensor][0].shape,
-                  batch[sensor].shape)
+            # print("rollouts",sensor,
+            #       rollouts.observations[sensor][0].shape,
+            #       batch[sensor].shape)
             rollouts.observations[sensor][0].copy_(batch[sensor])
         # batch and observations may contain shared PyTorch CUDA
         # tensors.  We must explicitly clear them here otherwise
