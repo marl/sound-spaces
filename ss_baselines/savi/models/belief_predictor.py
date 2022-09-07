@@ -94,7 +94,8 @@ class BeliefPredictor(nn.Module):
             pass
 
         if self.predict_label:
-            state_dict = torch.load('data/pretrained_weights/semantic_audionav/savi/label_predictor.pth')
+            # state_dict = torch.load('data/pretrained_weights/semantic_audionav/savi/label_predictor.pth')
+            state_dict = torch.load('/scratch/sd5397/soundspaces/data/models/savi3/best_val.pth')
             cleaned_state_dict = {
                 k[len('predictor.'):]: v for k, v in state_dict['audiogoal_predictor'].items()
                 if 'predictor.' in k

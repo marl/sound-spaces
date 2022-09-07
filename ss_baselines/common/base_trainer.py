@@ -101,7 +101,7 @@ class BaseRLTrainer(BaseTrainer):
                 self.config.freeze()
 
             if os.path.isfile(self.config.EVAL_CKPT_PATH_DIR):
-                # evaluate singe checkpoint
+                # evaluate single checkpoint
                 result = self._eval_checkpoint(self.config.EVAL_CKPT_PATH_DIR, writer)
                 return result
             else:
