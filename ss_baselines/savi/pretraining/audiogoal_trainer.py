@@ -249,7 +249,7 @@ def main():
         writer = SummaryWriter(log_dir=log_dir)
         audiogoal_predictor_trainer.run(['train', 'val'], writer)
     else:
-        ckpt = torch.load(os.path.join(args.model_dir, 'val_best.pth'))
+        ckpt = torch.load(os.path.join(args.model_dir, 'best_val.pth'))
         audiogoal_predictor_trainer.audiogoal_predictor.load_state_dict(ckpt['audiogoal_predictor'])
         audiogoal_predictor_trainer.run(['test'])
 
