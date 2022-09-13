@@ -27,7 +27,7 @@ class AudioGoalPredictorTrainer:
         self.device = (torch.device("cuda", 0))
 
         self.batch_size = 1024
-        self.num_worker = 20 # 8
+        self.num_worker = 8 # 8
         self.lr = 1e-3
         self.weight_decay = None
         self.num_epoch = 50

@@ -87,7 +87,7 @@ def main():
 
     if args.eval_best:
         best_ckpt_idx = find_best_ckpt_idx(os.path.join(args.model_dir, 'tb'), max_step=args.max_ckpt_ind)
-        best_ckpt_path = os.path.join(args.model_dir, f'ckpt.{best_ckpt_idx}.pth')
+        best_ckpt_path = os.path.join(args.model_dir, 'data', f'ckpt.{best_ckpt_idx}.pth')
         print(f'Evaluating the best checkpoint: {best_ckpt_path}')
         args.opts += ['EVAL_CKPT_PATH_DIR', best_ckpt_path]
 
