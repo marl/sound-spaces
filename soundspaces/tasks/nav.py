@@ -79,7 +79,9 @@ class SpectrogramSensor(Sensor):
             f_min=0,
             f_max=self._sample_rate / 2, # nyquist
             n_mels=self._n_mels,
-            sample_rate=self._sample_rate
+            sample_rate=self._sample_rate,
+            mel_scale="htk",
+            norm=None,
         ).to(device="cpu") if self._n_mels else None
 
     def _get_uuid(self, *args: Any, **kwargs: Any):
