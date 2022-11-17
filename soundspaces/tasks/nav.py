@@ -4,15 +4,13 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Type, Union
-import logging
+from typing import Any, Optional, Union
 
 import numpy as np
 import torch
 import cv2
-import librosa
 from gym import spaces
-from skimage.measure import block_reduce
+from torchaudio.functional import amplitude_to_DB, melscale_fbanks
 
 from habitat.config import Config
 from habitat.core.dataset import Episode
@@ -66,6 +64,23 @@ class SpectrogramSensor(Sensor):
     def __init__(self, *args: Any, sim: Simulator, config: Config, **kwargs: Any):
         self._sim = sim
         super().__init__(config=config)
+        self._config = config
+        self._sample_rate = sim.config.AUDIO.RIR_SAMPLING_RATE
+        self._hop_length = self._sample_rate * (config.HOP_SIZE_MS / 1000.0)
+        self._win_length = self._sample_rate * (config.WIN_SIZE_MS / 1000.0)
+        self._n_mels = config.NUM_MELS
+        self._n_fft = self._next_greater_power_of_2(self._win_length)
+        self._downsample = config.DOWNSAMPLE
+        self._include_gcc_phat = config.GCC_PHAT
+
+        self._window = self.torch.hann_window(self._win_length, device="cpu")
+        self._mel_scale = melscale_fbanks(
+            n_freqs=(self._n_fft // 2) + 1,
+            f_min=0,
+            f_max=self._sample_rate / 2, # nyquist
+            n_mels=self._n_mels,
+            sample_rate=self._sample_rate
+        ).to(device="cpu") if self._n_mels else None
 
     def _get_uuid(self, *args: Any, **kwargs: Any):
         return "spectrogram"
@@ -84,23 +99,96 @@ class SpectrogramSensor(Sensor):
         )
 
     @staticmethod
-    def compute_spectrogram(audio_data):
-        def compute_stft(signal):
-            n_fft = 512
-            hop_length = 160
-            win_length = 400
-            stft = np.abs(librosa.stft(signal, n_fft=n_fft, hop_length=hop_length, win_length=win_length))
-            stft = block_reduce(stft, block_size=(4, 4), func=np.mean)
-            return stft
+    def _next_greater_power_of_2(x):
+        return 2 ** (x - 1).bit_length()
 
-        channel1_magnitude = np.log1p(compute_stft(audio_data[0]))
-        channel2_magnitude = np.log1p(compute_stft(audio_data[1]))
-        spectrogram = np.stack([channel1_magnitude, channel2_magnitude], axis=-1)
+    @staticmethod
+    def compute_spectrogram(audio_data, win_length: int, hop_length: int, n_fft: int, window: Optional[torch.Tensor], mel_scale: Optional[torch.Tensor], downsample: Optional[int], include_gcc_phat: bool):
+        # stft.shape = (C=2, T, F)
+        stft = torch.stack(
+            [
+                torch.stft(
+                    input=torch.tensor(X_ch, device='cpu'),
+                    win_length=win_length,
+                    hop_length=hop_length,
+                    n_fft=n_fft,
+                    center=True,
+                    window=(
+                        window if window is not None
+                        else torch.hann_window(win_length, device="cpu")
+                    ),
+                    pad_mode="constant", # constant for zero padding
+                    return_complex=True,
+                ).T
+                for X_ch in audio_data
+            ],
+            dim=0
+        )
+        # Compute power spectrogram
+        spectrogram = torch.abs(stft) ** 2.0
+        # Apply the mel-scale filter to the power spectrogram
+        if mel_scale is not None:
+            spectrogram = torch.matmul(spectrogram, mel_scale)
+        # Optionally downsample
+        if downsample:
+            spectrogram = torch.nn.functional.avg_pool2d(
+                spectrogram.unsqueeze(dim=0),
+                kernel_size=(downsample, downsample),
+            ).squeeze(dim=0)
+        # Convert to decibels
+        spectrogram = amplitude_to_DB(
+            spectrogram,
+            multiplier=20.0,
+            amin=1e-10,
+            db_multiplier=0.0,
+            top_db=80,
+        )
 
-        return spectrogram
+        if include_gcc_phat:
+            num_channels = stft.shape[0]
+            # compute gcc_phat : (comb, T, F)
+            out_list = []
+            for ch1 in range(num_channels - 1):
+                for ch2 in range(ch1 + 1, num_channels):
+                    x1 = stft[ch1]
+                    x2 = stft[ch2]
+                    xcc = torch.angle(x1 * torch.conj(x2))
+                    xcc = torch.exp(1j * xcc.type(torch.complex64))
+                    gcc_phat = torch.fft.irfft(xcc)
+                    out_list.append(gcc_phat)
+            gcc_phat = torch.stack(out_list, dim=0)
+            # Apply the mel-scale filter to the GCC-PHAT values
+            gcc_phat = torch.matmul(gcc_phat, mel_scale)
+
+            # Downsample
+            if downsample is not None:
+                gcc_phat = torch.nn.functional.avg_pool2d(
+                    gcc_phat,
+                    kernel_size=(downsample, downsample),
+                )
+
+            # spectrogram.shape = (C=3, T, F)
+            spectrogram = torch.cat([spectrogram, gcc_phat], dim=0)
+
+        # Reshape to how SoundSpaces expects
+        # spectrogram.shape = (F, T, C)
+        spectrogram = spectrogram.permute(2, 1, 0)
+        return spectrogram.numpy().astype(np.float32)
 
     def get_observation(self, *args: Any, observations, episode: Episode, **kwargs: Any):
-        spectrogram = self._sim.get_current_spectrogram_observation(self.compute_spectrogram)
+        from functools import partial
+        spectrogram = self._sim.get_current_spectrogram_observation(
+            partial(
+                self.compute_spectrogram,
+                win_length=self._win_length,
+                hop_length=self._hop_length,
+                n_fft=self._n_fft,
+                window=self._window,
+                mel_scale=self._mel_scale,
+                downsample=self._downsample,
+                include_gcc_phat=self._include_gcc_phat,
+            )
+        )
 
         return spectrogram
 

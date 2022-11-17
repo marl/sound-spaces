@@ -148,6 +148,11 @@ _TC.TASK.AUDIOGOAL_SENSOR.TYPE = "AudioGoalSensor"
 # -----------------------------------------------------------------------------
 _TC.TASK.SPECTROGRAM_SENSOR = CN()
 _TC.TASK.SPECTROGRAM_SENSOR.TYPE = "SpectrogramSensor"
+_TC.TASK.SPECTROGRAM_SENSOR.DOWNSAMPLE = 0
+_TC.TASK.SPECTROGRAM_SENSOR.HOP_SIZE_MS = 20
+_TC.TASK.SPECTROGRAM_SENSOR.WIN_SIZE_MS = 40
+_TC.TASK.SPECTROGRAM_SENSOR.NUM_MELS = 64
+_TC.TASK.SPECTROGRAM_SENSOR.GCC_PHAT = True
 # -----------------------------------------------------------------------------
 # soundspaces
 # -----------------------------------------------------------------------------
