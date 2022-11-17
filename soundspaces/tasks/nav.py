@@ -104,8 +104,24 @@ class SpectrogramSensor(Sensor):
     def _next_greater_power_of_2(x):
         return 2 ** (x - 1).bit_length()
 
+    def compute_spectrogram(self, audio_data):
+        return self._compute_spectrogram(
+                audio_data,
+                win_length=self._win_length,
+                hop_length=self._hop_length,
+                n_fft=self._n_fft,
+                window=self._window,
+                mel_scale=self._mel_scale,
+                downsample=self._downsample,
+                include_gcc_phat=self._include_gcc_phat,
+        )
+
     @staticmethod
-    def compute_spectrogram(audio_data, win_length: int, hop_length: int, n_fft: int, window: Optional[torch.Tensor], mel_scale: Optional[torch.Tensor], downsample: Optional[int], include_gcc_phat: bool):
+    def _compute_spectrogram(
+        audio_data, win_length: int, hop_length: int, n_fft: int,
+        window: Optional[torch.Tensor], mel_scale: Optional[torch.Tensor],
+        downsample: Optional[int], include_gcc_phat: bool
+    ):
         # stft.shape = (C=2, T, F)
         stft = torch.stack(
             [
@@ -181,7 +197,7 @@ class SpectrogramSensor(Sensor):
         from functools import partial
         spectrogram = self._sim.get_current_spectrogram_observation(
             partial(
-                self.compute_spectrogram,
+                self._compute_spectrogram,
                 win_length=self._win_length,
                 hop_length=self._hop_length,
                 n_fft=self._n_fft,
