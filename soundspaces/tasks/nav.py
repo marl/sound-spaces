@@ -64,13 +64,13 @@ class SpectrogramSensor(Sensor):
     def __init__(self, *args: Any, sim: Simulator, config: Config, **kwargs: Any):
         self._sim = sim
         self._config = config
-        self._sample_rate = sim.config.AUDIO.RIR_SAMPLING_RATE
-        self._hop_length = self._sample_rate * (config.HOP_SIZE_MS / 1000.0)
-        self._win_length = self._sample_rate * (config.WIN_SIZE_MS / 1000.0)
-        self._n_mels = config.NUM_MELS
-        self._n_fft = self._next_greater_power_of_2(self._win_length)
+        self._sample_rate = int(sim.config.AUDIO.RIR_SAMPLING_RATE)
+        self._hop_length = int(self._sample_rate * (config.HOP_SIZE_MS / 1000.0))
+        self._win_length = int(self._sample_rate * (config.WIN_SIZE_MS / 1000.0))
+        self._n_mels = int(config.NUM_MELS)
+        self._n_fft = int(self._next_greater_power_of_2(self._win_length))
         self._downsample = config.DOWNSAMPLE
-        self._include_gcc_phat = config.GCC_PHAT
+        self._include_gcc_phat = bool(config.GCC_PHAT)
         self._window = self.torch.hann_window(self._win_length, device="cpu")
         self._mel_scale = melscale_fbanks(
             n_freqs=(self._n_fft // 2) + 1,
