@@ -109,6 +109,7 @@ class SpectrogramSensor(Sensor):
                 win_length=self._win_length,
                 hop_length=self._hop_length,
                 n_fft=self._n_fft,
+                n_mels=self._n_mels,
                 window=self._window,
                 mel_scale=self._mel_scale,
                 downsample=self._downsample,
@@ -117,7 +118,7 @@ class SpectrogramSensor(Sensor):
 
     @staticmethod
     def _compute_spectrogram(
-        audio_data, win_length: int, hop_length: int, n_fft: int,
+        audio_data, win_length: int, hop_length: int, n_fft: int, n_mels: int,
         window: Optional[torch.Tensor], mel_scale: Optional[torch.Tensor],
         downsample: Optional[int], include_gcc_phat: bool
     ):
@@ -172,10 +173,16 @@ class SpectrogramSensor(Sensor):
                     xcc = torch.angle(x1 * torch.conj(x2))
                     xcc = torch.exp(1j * xcc.type(torch.complex64))
                     gcc_phat = torch.fft.irfft(xcc)
+                    # Just get a subset of GCC values to match dimensionality
+                    gcc_phat = torch.cat(
+                        [
+                            gcc_phat[..., -n_mels // 2:],
+                            gcc_phat[..., :n_mels // 2],
+                        ],
+                        dim=-1,
+                    )
                     out_list.append(gcc_phat)
             gcc_phat = torch.stack(out_list, dim=0)
-            # Apply the mel-scale filter to the GCC-PHAT values
-            gcc_phat = torch.matmul(gcc_phat, mel_scale)
 
             # Downsample
             if downsample is not None:
