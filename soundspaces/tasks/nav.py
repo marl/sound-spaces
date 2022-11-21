@@ -71,7 +71,7 @@ class SpectrogramSensor(Sensor):
         self._n_fft = int(self._next_greater_power_of_2(self._win_length))
         self._downsample = config.DOWNSAMPLE
         self._include_gcc_phat = bool(config.GCC_PHAT)
-        self._window = self.torch.hann_window(self._win_length, device="cpu")
+        self._window = torch.hann_window(self._win_length, device="cpu")
         self._mel_scale = melscale_fbanks(
             n_freqs=(self._n_fft // 2) + 1,
             f_min=0,
