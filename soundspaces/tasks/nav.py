@@ -80,7 +80,7 @@ class SpectrogramSensor(Sensor):
             sample_rate=self._sample_rate,
             mel_scale="htk",
             norm=None,
-        ).to(device="cpu") if self._n_mels else None
+        ).to(device="cpu", dtype=torch.float32) if self._n_mels else None
         super().__init__(config=config)
 
     def _get_uuid(self, *args: Any, **kwargs: Any):
@@ -126,7 +126,7 @@ class SpectrogramSensor(Sensor):
         stft = torch.stack(
             [
                 torch.stft(
-                    input=torch.tensor(X_ch, device='cpu'),
+                    input=torch.tensor(X_ch, device='cpu', dtype=torch.float32),
                     win_length=win_length,
                     hop_length=hop_length,
                     n_fft=n_fft,
@@ -143,7 +143,7 @@ class SpectrogramSensor(Sensor):
             dim=0
         )
         # Compute power spectrogram
-        spectrogram = torch.abs(stft) ** 2.0
+        spectrogram = (torch.abs(stft) ** 2.0).to(dtype=torch.float32)
         # Apply the mel-scale filter to the power spectrogram
         if mel_scale is not None:
             spectrogram = torch.matmul(spectrogram, mel_scale)
