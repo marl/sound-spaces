@@ -185,7 +185,7 @@ class SpectrogramSensor(Sensor):
             gcc_phat = torch.stack(out_list, dim=0)
 
             # Downsample
-            if downsample is not None:
+            if downsample:
                 gcc_phat = torch.nn.functional.avg_pool2d(
                     gcc_phat,
                     kernel_size=(downsample, downsample),
