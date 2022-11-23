@@ -207,6 +207,7 @@ class SpectrogramSensor(Sensor):
                 win_length=self._win_length,
                 hop_length=self._hop_length,
                 n_fft=self._n_fft,
+                n_mels=self._n_mels,
                 window=self._window,
                 mel_scale=self._mel_scale,
                 downsample=self._downsample,
