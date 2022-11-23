@@ -82,17 +82,32 @@ class DDPPOTrainer(PPOTrainer):
             )
 
             if ppo_cfg.use_belief_predictor:
+                if 'audiogoal' in self.config.TASK_CONFIG.TASK.GOAL_SENSOR_UUID:
+                    audiogoal_sensor = 'audiogoal'
+                elif 'spectrogram' in self.config.TASK_CONFIG.TASK.GOAL_SENSOR_UUID:
+                    audiogoal_sensor = 'spectrogram'
+                else:
+                    raise ValueError(f"{self.config.TASK_CONFIG.TASK.GOAL_SENSOR_UUID} sensor is invalid for audio")
                 belief_cfg = ppo_cfg.BELIEF_PREDICTOR
                 bp_class = BeliefPredictorDDP if belief_cfg.online_training else BeliefPredictor
-                self.belief_predictor = bp_class(belief_cfg, self.device, None, None,
-                                                 ppo_cfg.hidden_size, self.envs.num_envs, has_distractor_sound
-                                                 ).to(device=self.device)
+                self.belief_predictor = bp_class(
+                    belief_config=belief_cfg,
+                    device=self.device,
+                    input_size=None,
+                    pose_indices=None,
+                    hidden_state_size=ppo_cfg.hidden_size,
+                    num_audio_channels=self.envs.observation_spaces[0][audiogoal_sensor].shape[2],
+                    num_env=self.envs.num_envs,
+                    has_distractor_sound=has_distractor_sound,
+                ).to(device=self.device)
                 if belief_cfg.online_training:
                     params = list(self.belief_predictor.predictor.parameters())
                     if belief_cfg.train_encoder:
-                        params += list(self.actor_critic.net.goal_encoder.parameters()) + \
-                                  list(self.actor_critic.net.visual_encoder.parameters()) + \
-                                  list(self.actor_critic.net.action_encoder.parameters())
+                        params += (
+                            list(self.actor_critic.net.goal_encoder.parameters())
+                            + list(self.actor_critic.net.visual_encoder.parameters())
+                            + list(self.actor_critic.net.action_encoder.parameters())
+                        )
                     self.belief_predictor.optimizer = torch.optim.Adam(params, lr=belief_cfg.lr)
                 self.belief_predictor.freeze_encoders()
 
@@ -123,17 +138,33 @@ class DDPPOTrainer(PPOTrainer):
                 self.actor_critic.net.freeze_encoders()
 
             if ppo_cfg.use_belief_predictor:
+                if 'audiogoal' in self.config.TASK_CONFIG.TASK.GOAL_SENSOR_UUID:
+                    audiogoal_sensor = 'audiogoal'
+                elif 'spectrogram' in self.config.TASK_CONFIG.TASK.GOAL_SENSOR_UUID:
+                    audiogoal_sensor = 'spectrogram'
+                else:
+                    raise ValueError(f"{self.config.TASK_CONFIG.TASK.GOAL_SENSOR_UUID} sensor is invalid for audio")
+
                 smt = self.actor_critic.net.smt_state_encoder
                 bp_class = BeliefPredictorDDP if belief_cfg.online_training else BeliefPredictor
-                self.belief_predictor = bp_class(belief_cfg, self.device, smt._input_size, smt._pose_indices,
-                                                 smt.hidden_state_size, self.envs.num_envs, has_distractor_sound
-                                                 ).to(device=self.device)
+                self.belief_predictor = bp_class(
+                    belief_config=belief_cfg,
+                    device=self.device,
+                    input_size=smt._input_size,
+                    pose_indices=smt._pose_indices,
+                    hidden_state_size=smt.hidden_state_size,
+                    num_audio_channels=self.envs.observation_spaces[0][audiogoal_sensor].shape[2],
+                    num_env=self.envs.num_envs,
+                    has_distractor_sound=has_distractor_sound,
+                ).to(device=self.device)
                 if belief_cfg.online_training:
                     params = list(self.belief_predictor.predictor.parameters())
                     if belief_cfg.train_encoder:
-                        params += list(self.actor_critic.net.goal_encoder.parameters()) + \
-                                  list(self.actor_critic.net.visual_encoder.parameters()) + \
-                                  list(self.actor_critic.net.action_encoder.parameters())
+                        params += (
+                            list(self.actor_critic.net.goal_encoder.parameters())
+                            + list(self.actor_critic.net.visual_encoder.parameters())
+                            + list(self.actor_critic.net.action_encoder.parameters())
+                        )
                     self.belief_predictor.optimizer = torch.optim.Adam(params, lr=belief_cfg.lr)
                 self.belief_predictor.freeze_encoders()
 

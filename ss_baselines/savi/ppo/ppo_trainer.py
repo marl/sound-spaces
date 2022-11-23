@@ -119,9 +119,21 @@ class PPOTrainer(BaseRLTrainer):
             if ppo_cfg.use_belief_predictor:
                 belief_cfg = ppo_cfg.BELIEF_PREDICTOR
                 smt = self.actor_critic.net.smt_state_encoder
-                self.belief_predictor = BeliefPredictor(belief_cfg, self.device, smt._input_size, smt._pose_indices,
-                                                        smt.hidden_state_size, self.envs.num_envs,
-                                                        ).to(device=self.device)
+                if 'audiogoal' in self.config.TASK_CONFIG.TASK.GOAL_SENSOR_UUID:
+                    audiogoal_sensor = 'audiogoal'
+                elif 'spectrogram' in self.config.TASK_CONFIG.TASK.GOAL_SENSOR_UUID:
+                    audiogoal_sensor = 'spectrogram'
+                else:
+                    raise ValueError(f"{self.config.TASK_CONFIG.TASK.GOAL_SENSOR_UUID} sensor is invalid for audio")
+                self.belief_predictor = BeliefPredictor(
+                    belief_config=belief_cfg,
+                    device=self.device,
+                    input_size=smt._input_size,
+                    pose_indices=smt._pose_indices,
+                    hidden_state_size=smt.hidden_state_size,
+                    num_audio_channels=observation_space[audiogoal_sensor].shape[2],
+                    num_env=self.envs.num_envs,
+                ).to(device=self.device)
                 for param in self.belief_predictor.parameters():
                     param.requires_grad = False
 

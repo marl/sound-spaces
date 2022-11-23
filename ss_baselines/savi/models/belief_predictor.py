@@ -54,20 +54,21 @@ class DecentralizedDistributedMixinBelief:
 
 class BeliefPredictor(nn.Module):
     def __init__(self, belief_config, device, input_size, pose_indices,
-                 hidden_state_size, num_env=1, has_distractor_sound=False):
+                 hidden_state_size, num_audio_channels, num_env=1, has_distractor_sound=False):
         super(BeliefPredictor, self).__init__()
         self.config = belief_config
         self.device = device
         self.predict_label = belief_config.use_label_belief
         self.predict_location = belief_config.use_location_belief
         self.has_distractor_sound = has_distractor_sound
+        self.num_audio_channels = num_audio_channels
 
         if self.predict_location:
             if belief_config.online_training:
                 if self.has_distractor_sound:
-                    self.predictor = custom_resnet18(num_input_channels=23)
+                    self.predictor = custom_resnet18(num_input_channels=(21 + num_audio_channels))
                 else:
-                    self.predictor = custom_resnet18(num_input_channels=2)
+                    self.predictor = custom_resnet18(num_input_channels=num_audio_channels)
                 self.predictor.fc = nn.Linear(4608, 2)
             else:
                 self.predictor = models.resnet18(pretrained=True)
