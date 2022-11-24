@@ -1,4 +1,5 @@
 import os
+import math
 import time
 import logging
 import copy
@@ -13,7 +14,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchsummary import summary
 
-from soundspaces.utils import load_metadata
+from soundspaces.utils import load_metadata, next_greater_power_of_2
 from ss_baselines.savi.pretraining.audiogoal_predictor import AudioGoalPredictor
 from ss_baselines.savi.pretraining.audiogoal_dataset import AudioGoalDataset
 from ss_baselines.savi.config.default import get_config
@@ -38,7 +39,19 @@ class AudioGoalPredictorTrainer:
         ).to(device=self.device)
         self.predict_label = predict_label
         self.predict_location = predict_location
-        summary(self.audiogoal_predictor.predictor, (2, 65, 26), device='cuda')
+
+        rir_sampling_rate = config.TASK_CONFIG.SIMULATOR.AUDIO.RIR_SAMPLING_RATE
+        spec_config = config.TASK_CONFIG.TASK.SPECTROGRAM_SENSOR
+        n_mels = int(spec_config.NUM_MELS)
+        n_fft = int(next_greater_power_of_2(win_length))
+        win_length = int(rir_sampling_rate * (spec_config.WIN_SIZE_MS / 1000.0))
+        downsample = spec_config.DOWNSAMPLE
+        n_freqs = math.ceil((n_mels if n_mels else n_fft) / (downsample if downsample else 1))
+        summary(
+            self.audiogoal_predictor.predictor,
+            (self.audiogoal_predictor.predictor.conv1.in_channels, n_freqs, 26),
+            device='cuda',
+        )
 
     def run(self, splits, writer=None):
         meta_dir = self.config.TASK_CONFIG.SIMULATOR.AUDIO.METADATA_DIR
