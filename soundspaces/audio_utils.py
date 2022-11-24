@@ -51,6 +51,7 @@ def compute_spectrogram(
 
     if include_gcc_phat:
         num_channels = stft.shape[0]
+        n_freqs = n_mels if (mel_scale is not None) else ((n_fft // 2) + 1)
         # compute gcc_phat : (comb, T, F)
         out_list = []
         for ch1 in range(num_channels - 1):
@@ -63,8 +64,8 @@ def compute_spectrogram(
                 # Just get a subset of GCC values to match dimensionality
                 gcc_phat = torch.cat(
                     [
-                        gcc_phat[..., -n_mels // 2:],
-                        gcc_phat[..., :n_mels // 2],
+                        gcc_phat[..., -n_freqs // 2:],
+                        gcc_phat[..., :n_freqs // 2],
                     ],
                     dim=-1,
                 )
