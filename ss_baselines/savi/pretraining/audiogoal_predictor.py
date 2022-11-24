@@ -16,11 +16,17 @@ import torchvision.models as models
 
 
 class AudioGoalPredictor(nn.Module):
-    def __init__(self, predict_label=True, predict_location=True):
+    def __init__(self, config, predict_label=True, predict_location=True):
         super(AudioGoalPredictor, self).__init__()
         self.input_shape_printed = False
         self.predictor = models.resnet18(pretrained=True)
-        self.predictor.conv1 = nn.Conv2d(2, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.predictor.conv1 = nn.Conv2d(
+            2 + (1 if config.TASK_CONFIG.SPECTROGRAM_SENSOR.GCC_PHAT else 0), 64,
+            kernel_size=7,
+            stride=2,
+            padding=3,
+            bias=False,
+        )
         output_size = (21 if predict_label else 0) + (2 if predict_location else 0)
         self.predictor.fc = nn.Linear(512, output_size)
 

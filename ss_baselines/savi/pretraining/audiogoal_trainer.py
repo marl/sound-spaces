@@ -32,6 +32,7 @@ class AudioGoalPredictorTrainer:
         self.weight_decay = None
         self.num_epoch = 50
         self.audiogoal_predictor = AudioGoalPredictor(
+            config=self.config,
             predict_label=predict_label,
             predict_location=predict_location
         ).to(device=self.device)
