@@ -33,7 +33,7 @@ class AudioGoalDataset(Dataset):
         self.rir_sampling_rate = config.TASK_CONFIG.SIMULATOR.AUDIO.RIR_SAMPLING_RATE
         sound_files = os.listdir(self.source_sound_dir)
 
-        spec_config = config.TASK_CONFIG.SPECTROGRAM_SENSOR
+        spec_config = config.TASK_CONFIG.TASK.SPECTROGRAM_SENSOR
         self.hop_length = int(self.rir_sampling_rate * (spec_config.HOP_SIZE_MS / 1000.0))
         self.win_length = int(self.rir_sampling_rate * (spec_config.WIN_SIZE_MS / 1000.0))
         self.n_mels = int(spec_config.NUM_MELS)

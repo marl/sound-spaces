@@ -21,7 +21,7 @@ class AudioGoalPredictor(nn.Module):
         self.input_shape_printed = False
         self.predictor = models.resnet18(pretrained=True)
         self.predictor.conv1 = nn.Conv2d(
-            2 + (1 if config.TASK_CONFIG.SPECTROGRAM_SENSOR.GCC_PHAT else 0), 64,
+            2 + (1 if config.TASK_CONFIG.TASK.SPECTROGRAM_SENSOR.GCC_PHAT else 0), 64,
             kernel_size=7,
             stride=2,
             padding=3,
