@@ -12,6 +12,10 @@ from PIL import Image
 from habitat_sim.utils.common import d3_40_colors_rgb
 
 
+def next_greater_power_of_2(x):
+    return 2 ** (x - 1).bit_length()
+
+
 def load_metadata(parent_folder):
     points_file = os.path.join(parent_folder, 'points.txt')
     if "replica" in parent_folder:
@@ -39,7 +43,7 @@ def load_metadata(parent_folder):
     return points, graph
 
 
-def _to_tensor(v):
+def to_tensor(v):
     if torch.is_tensor(v):
         return v
     elif isinstance(v, np.ndarray):

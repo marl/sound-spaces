@@ -31,8 +31,10 @@ class AudioGoalPredictorTrainer:
         self.lr = 1e-3
         self.weight_decay = None
         self.num_epoch = 50
-        self.audiogoal_predictor = AudioGoalPredictor(predict_label=predict_label,
-                                                      predict_location=predict_location).to(device=self.device)
+        self.audiogoal_predictor = AudioGoalPredictor(
+            predict_label=predict_label,
+            predict_location=predict_location
+        ).to(device=self.device)
         self.predict_label = predict_label
         self.predict_location = predict_location
         summary(self.audiogoal_predictor.predictor, (2, 65, 26), device='cuda')
@@ -50,7 +52,9 @@ class AudioGoalPredictorTrainer:
             for scene in scenes:
                 points, graph = load_metadata(os.path.join(meta_dir, 'mp3d', scene))
                 scene_graphs[scene] = graph
+            # TODO: pass in config here so we can get spectrogram params!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11
             datasets[split] = AudioGoalDataset(
+                config=self.config,
                 scene_graphs=scene_graphs,
                 scenes=scenes,
                 split=split,
