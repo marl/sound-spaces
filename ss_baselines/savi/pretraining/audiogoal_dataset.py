@@ -30,10 +30,10 @@ class AudioGoalDataset(Dataset):
         self.binaural_rir_dir = 'data/binaural_rirs/mp3d'
         self.source_sound_dir = f'data/sounds/semantic_splits/{split}'
         self.source_sound_dict = dict()
-        self.rir_sampling_rate = self.config.TASK_CONFIG.SIMULATOR.AUDIO.RIR_SAMPLING_RATE
+        self.rir_sampling_rate = config.TASK_CONFIG.SIMULATOR.AUDIO.RIR_SAMPLING_RATE
         sound_files = os.listdir(self.source_sound_dir)
 
-        spec_config = self.config.TASK_CONFIG.SPECTROGRAM_SENSOR
+        spec_config = config.TASK_CONFIG.SPECTROGRAM_SENSOR
         self.hop_length = int(self.rir_sampling_rate * (spec_config.HOP_SIZE_MS / 1000.0))
         self.win_length = int(self.rir_sampling_rate * (spec_config.WIN_SIZE_MS / 1000.0))
         self.n_mels = int(spec_config.NUM_MELS)
