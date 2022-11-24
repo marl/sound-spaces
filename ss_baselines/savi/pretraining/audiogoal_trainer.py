@@ -43,8 +43,8 @@ class AudioGoalPredictorTrainer:
         rir_sampling_rate = config.TASK_CONFIG.SIMULATOR.AUDIO.RIR_SAMPLING_RATE
         spec_config = config.TASK_CONFIG.TASK.SPECTROGRAM_SENSOR
         n_mels = int(spec_config.NUM_MELS)
-        n_fft = int(next_greater_power_of_2(win_length))
         win_length = int(rir_sampling_rate * (spec_config.WIN_SIZE_MS / 1000.0))
+        n_fft = int(next_greater_power_of_2(win_length))
         downsample = spec_config.DOWNSAMPLE
         n_freqs = math.ceil((n_mels if n_mels else n_fft) / (downsample if downsample else 1))
         summary(
