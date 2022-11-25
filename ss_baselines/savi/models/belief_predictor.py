@@ -98,7 +98,7 @@ class BeliefPredictor(nn.Module):
         if self.predict_label:
             self.classifier = models.resnet18(pretrained=True)
             self.classifier.conv1 = nn.Conv2d(num_audio_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
-            self.classifier.fc = nn.Linear(get_torchvision_resnet18_feature_dim(self.predictor, test_input), 21)
+            self.classifier.fc = nn.Linear(get_torchvision_resnet18_feature_dim(self.classifier, test_input), 21)
 
         self.last_pointgoal = [None] * num_env
         self.last_label = [None] * num_env
