@@ -85,8 +85,7 @@ class BeliefPredictor(nn.Module):
         n_frames = int(sampling_rate) // spec_info["hop_length"] + 1
         n_freqs = spec_info["n_freqs"]
         num_input_channels = num_audio_channels + (21 if self.has_distractor_sound else 0)
-        input_shape = (num_input_channels, n_frames, n_freqs)
-        test_input = torch.zeros(*input_shape)
+        test_input = torch.zeros(1, num_input_channels, n_frames, n_freqs)
         if self.predict_location:
             if belief_config.online_training:
                 self.predictor = custom_resnet18(num_input_channels=num_input_channels)
