@@ -54,6 +54,7 @@ RL:
       lr: 1e-3
       use_label_belief: True
       use_location_belief: True
+      pretrained_label_path: "/scratch/jtc440/soundspaces/semantic_audionav/savi_pretraining/data/models/savi/label_predictor/best_val.pth"
   DDPPO:
     sync_frac: 0.6
     distrib_backend: "GLOO"
