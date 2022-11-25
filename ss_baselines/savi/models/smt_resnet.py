@@ -129,6 +129,11 @@ class CustomResNet(nn.Module):
 
     def _forward_impl(self, x):
         # See note [TorchScript super()]
+        x = self.pre_fc(x)
+        x = self.fc(x)
+        return x
+
+    def pre_fc(self, x):
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -137,11 +142,7 @@ class CustomResNet(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
-
-        x = torch.flatten(x, 1)
-        x = self.fc(x)
-
-        return x
+        return torch.flatten(x, 1)
 
     def forward(self, x):
         return self._forward_impl(x)

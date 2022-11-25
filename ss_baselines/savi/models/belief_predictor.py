@@ -13,6 +13,7 @@ import torch.nn as nn
 import numpy as np
 import torchvision.models as models
 from soundspaces.tasks.nav import SpectrogramSensor, LocationBelief, CategoryBelief, Category
+from soundspaces.audio_utils import get_spectrogram_info
 from ss_baselines.savi.models.smt_resnet import custom_resnet18
 
 
@@ -52,9 +53,25 @@ class DecentralizedDistributedMixinBelief:
             self.reducer.prepare_for_backward([])
 
 
+def get_torchvision_resnet18_feature_dim(predictor, test_input):
+    x = predictor.conv1(test_input)
+    x = predictor.bn1(x)
+    x = predictor.relu(x)
+    x = predictor.maxpool(x)
+    x = predictor.layer1(x)
+    x = predictor.layer2(x)
+    x = predictor.layer3(x)
+    x = predictor.layer4(x)
+    x = predictor.avgpool(x)
+    x = torch.flatten(x, 1)
+    return x.shape[-1]
+
+
 class BeliefPredictor(nn.Module):
-    def __init__(self, belief_config, device, input_size, pose_indices,
-                 hidden_state_size, num_audio_channels, num_env=1, has_distractor_sound=False):
+    def __init__(
+        self, belief_config, device, input_size, pose_indices,
+        hidden_state_size, num_audio_channels, num_env=1, has_distractor_sound=False,
+    ):
         super(BeliefPredictor, self).__init__()
         self.config = belief_config
         self.device = device
@@ -63,22 +80,25 @@ class BeliefPredictor(nn.Module):
         self.has_distractor_sound = has_distractor_sound
         self.num_audio_channels = num_audio_channels
 
+        spec_info = get_spectrogram_info(self.config)
+        n_frames = int(spec_info["sampling_rate"]) // spec_info["hop_length"] + 1
+        n_freqs = spec_info["n_freqs"]
+        num_input_channels = num_audio_channels + (21 if self.has_distractor_sound else 0)
+        input_shape = (num_input_channels, n_frames, n_freqs)
+        test_input = torch.zeros(*input_shape)
         if self.predict_location:
             if belief_config.online_training:
-                if self.has_distractor_sound:
-                    self.predictor = custom_resnet18(num_input_channels=(21 + num_audio_channels))
-                else:
-                    self.predictor = custom_resnet18(num_input_channels=num_audio_channels)
-                self.predictor.fc = nn.Linear(4608, 2)
+                self.predictor = custom_resnet18(num_input_channels=num_input_channels)
+                self.predictor.fc = nn.Linear(self.predictor.pre_fc(test_input).shape[-1], 2)
             else:
                 self.predictor = models.resnet18(pretrained=True)
                 self.predictor.conv1 = nn.Conv2d(num_audio_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
-                self.predictor.fc = nn.Linear(512, 23)
+                self.predictor.fc = nn.Linear(get_torchvision_resnet18_feature_dim(self.predictor, test_input), 23)
 
         if self.predict_label:
             self.classifier = models.resnet18(pretrained=True)
             self.classifier.conv1 = nn.Conv2d(num_audio_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
-            self.classifier.fc = nn.Linear(512, 21)
+            self.classifier.fc = nn.Linear(get_torchvision_resnet18_feature_dim(self.predictor, test_input), 21)
 
         self.last_pointgoal = [None] * num_env
         self.last_label = [None] * num_env
