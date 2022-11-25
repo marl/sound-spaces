@@ -117,6 +117,7 @@ _C.RL.PPO.BELIEF_PREDICTOR.train_encoder = False
 _C.RL.PPO.BELIEF_PREDICTOR.normalize_category_distribution = False
 _C.RL.PPO.BELIEF_PREDICTOR.use_label_belief = True
 _C.RL.PPO.BELIEF_PREDICTOR.use_location_belief = True
+_C.RL.PPO.BELIEF_PREDICTOR.pretrained_label_path = 'data/pretrained_weights/semantic_audionav/savi/label_predictor.pth'
 _C.RL.PPO.BELIEF_PREDICTOR.current_pred_only = False
 _C.RL.PPO.BELIEF_PREDICTOR.weighting_factor = 0.5
 # -----------------------------------------------------------------------------
