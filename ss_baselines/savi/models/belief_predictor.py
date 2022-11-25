@@ -70,7 +70,8 @@ def get_torchvision_resnet18_feature_dim(predictor, test_input):
 class BeliefPredictor(nn.Module):
     def __init__(
         self, belief_config, device, input_size, pose_indices,
-        hidden_state_size, num_audio_channels, num_env=1, has_distractor_sound=False,
+        hidden_state_size, num_audio_channels, sampling_rate, spec_config,
+        num_env=1, has_distractor_sound=False,
     ):
         super(BeliefPredictor, self).__init__()
         self.config = belief_config
@@ -80,8 +81,7 @@ class BeliefPredictor(nn.Module):
         self.has_distractor_sound = has_distractor_sound
         self.num_audio_channels = num_audio_channels
 
-        sampling_rate = self.config.TASK_CONFIG.SIMULATOR.AUDIO.RIR_SAMPLING_RATE
-        spec_info = get_spectrogram_info(self.config.TASK_CONFIG.TASK.SPECTROGRAM_SENSOR, sampling_rate)
+        spec_info = get_spectrogram_info(spec_config, sampling_rate)
         n_frames = int(sampling_rate) // spec_info["hop_length"] + 1
         n_freqs = spec_info["n_freqs"]
         num_input_channels = num_audio_channels + (21 if self.has_distractor_sound else 0)

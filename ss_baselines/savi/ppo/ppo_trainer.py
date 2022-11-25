@@ -127,6 +127,8 @@ class PPOTrainer(BaseRLTrainer):
                     pose_indices=smt._pose_indices,
                     hidden_state_size=smt.hidden_state_size,
                     num_audio_channels=observation_space[SpectrogramSensor.cls_uuid].shape[2],
+                    sampling_rate=self.config.TASK_CONFIG.SIMULATOR.AUDIO.RIR_SAMPLING_RATE,
+                    spec_config=self.config.TASK_CONFIG.TASK.SPECTROGRAM_SENSOR,
                     num_env=self.envs.num_envs,
                 ).to(device=self.device)
                 for param in self.belief_predictor.parameters():

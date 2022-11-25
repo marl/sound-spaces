@@ -92,6 +92,8 @@ class DDPPOTrainer(PPOTrainer):
                     pose_indices=None,
                     hidden_state_size=ppo_cfg.hidden_size,
                     num_audio_channels=self.envs.observation_spaces[0][SpectrogramSensor.cls_uuid].shape[2],
+                    sampling_rate=self.config.TASK_CONFIG.SIMULATOR.AUDIO.RIR_SAMPLING_RATE,
+                    spec_config=self.config.TASK_CONFIG.TASK.SPECTROGRAM_SENSOR,
                     num_env=self.envs.num_envs,
                     has_distractor_sound=has_distractor_sound,
                 ).to(device=self.device)
@@ -142,6 +144,8 @@ class DDPPOTrainer(PPOTrainer):
                     pose_indices=smt._pose_indices,
                     hidden_state_size=smt.hidden_state_size,
                     num_audio_channels=self.envs.observation_spaces[0][SpectrogramSensor.cls_uuid].shape[2],
+                    sampling_rate=self.config.TASK_CONFIG.SIMULATOR.AUDIO.RIR_SAMPLING_RATE,
+                    spec_config=self.config.TASK_CONFIG.TASK.SPECTROGRAM_SENSOR,
                     num_env=self.envs.num_envs,
                     has_distractor_sound=has_distractor_sound,
                 ).to(device=self.device)
