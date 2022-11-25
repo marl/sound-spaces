@@ -72,12 +72,12 @@ class BeliefPredictor(nn.Module):
                 self.predictor.fc = nn.Linear(4608, 2)
             else:
                 self.predictor = models.resnet18(pretrained=True)
-                self.predictor.conv1 = nn.Conv2d(2, 64, kernel_size=7, stride=2, padding=3, bias=False)
+                self.predictor.conv1 = nn.Conv2d(num_audio_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
                 self.predictor.fc = nn.Linear(512, 23)
 
         if self.predict_label:
             self.classifier = models.resnet18(pretrained=True)
-            self.classifier.conv1 = nn.Conv2d(2, 64, kernel_size=7, stride=2, padding=3, bias=False)
+            self.classifier.conv1 = nn.Conv2d(num_audio_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
             self.classifier.fc = nn.Linear(512, 21)
 
         self.last_pointgoal = [None] * num_env
