@@ -80,8 +80,9 @@ class BeliefPredictor(nn.Module):
         self.has_distractor_sound = has_distractor_sound
         self.num_audio_channels = num_audio_channels
 
-        spec_info = get_spectrogram_info(self.config)
-        n_frames = int(spec_info["sampling_rate"]) // spec_info["hop_length"] + 1
+        sampling_rate = self.config.TASK_CONFIG.SIMULATOR.AUDIO.RIR_SAMPLING_RATE
+        spec_info = get_spectrogram_info(self.config.TASK_CONFIG.TASK.SPECTROGRAM_SENSOR, sampling_rate)
+        n_frames = int(sampling_rate) // spec_info["hop_length"] + 1
         n_freqs = spec_info["n_freqs"]
         num_input_channels = num_audio_channels + (21 if self.has_distractor_sound else 0)
         input_shape = (num_input_channels, n_frames, n_freqs)

@@ -65,8 +65,8 @@ class SpectrogramSensor(Sensor):
     def __init__(self, *args: Any, sim: Simulator, config: Config, **kwargs: Any):
         self._sim = sim
         self._config = config
-        spec_info = get_spectrogram_info(config, sim=sim)
-        self._sample_rate = spec_info["sampling_rate"]
+        self._sample_rate = sim.config.AUDIO.RIR_SAMPLING_RATE
+        spec_info = get_spectrogram_info(config, self._sample_rate)
         self._hop_length = spec_info["hop_length"]
         self._win_length = spec_info["win_length"]
         self._n_mels = spec_info["n_mels"]

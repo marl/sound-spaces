@@ -10,12 +10,7 @@ from habitat.config import Config
 from soundspaces.utils import next_greater_power_of_2
 
 
-def get_spectrogram_info(config: Config, sim: Optional[Simulator] = None):
-    if sim:
-        sampling_rate = sim.config.AUDIO.RIR_SAMPLING_RATE
-    else:
-        sampling_rate = config.TASK_CONFIG.SIMULATOR.AUDIO.RIR_SAMPLING_RATE
-    spec_config = config.TASK_CONFIG.TASK.SPECTROGRAM_SENSOR
+def get_spectrogram_info(spec_config: Config, sampling_rate):
     win_length = int(sampling_rate * (spec_config.WIN_SIZE_MS / 1000.0))
     n_mels = int(spec_config.NUM_MELS)
     n_fft = int(next_greater_power_of_2(win_length))
