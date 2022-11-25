@@ -19,6 +19,7 @@ import torch.nn as nn
 from torch.optim.lr_scheduler import LambdaLR
 
 from habitat import Config, logger
+from soundspaces.tasks.nav import SpectrogramSensor
 from ss_baselines.common.baseline_registry import baseline_registry
 from ss_baselines.common.env_utils import construct_envs
 from ss_baselines.common.environments import get_env_class
@@ -82,12 +83,6 @@ class DDPPOTrainer(PPOTrainer):
             )
 
             if ppo_cfg.use_belief_predictor:
-                if 'audiogoal' in self.config.TASK_CONFIG.TASK.GOAL_SENSOR_UUID:
-                    audiogoal_sensor = 'audiogoal'
-                elif 'spectrogram' in self.config.TASK_CONFIG.TASK.GOAL_SENSOR_UUID:
-                    audiogoal_sensor = 'spectrogram'
-                else:
-                    raise ValueError(f"{self.config.TASK_CONFIG.TASK.GOAL_SENSOR_UUID} sensor is invalid for audio")
                 belief_cfg = ppo_cfg.BELIEF_PREDICTOR
                 bp_class = BeliefPredictorDDP if belief_cfg.online_training else BeliefPredictor
                 self.belief_predictor = bp_class(
@@ -96,7 +91,7 @@ class DDPPOTrainer(PPOTrainer):
                     input_size=None,
                     pose_indices=None,
                     hidden_state_size=ppo_cfg.hidden_size,
-                    num_audio_channels=self.envs.observation_spaces[0][audiogoal_sensor].shape[2],
+                    num_audio_channels=self.envs.observation_spaces[0][SpectrogramSensor.cls_uuid].shape[2],
                     num_env=self.envs.num_envs,
                     has_distractor_sound=has_distractor_sound,
                 ).to(device=self.device)
@@ -138,13 +133,6 @@ class DDPPOTrainer(PPOTrainer):
                 self.actor_critic.net.freeze_encoders()
 
             if ppo_cfg.use_belief_predictor:
-                if 'audiogoal' in self.config.TASK_CONFIG.TASK.GOAL_SENSOR_UUID:
-                    audiogoal_sensor = 'audiogoal'
-                elif 'spectrogram' in self.config.TASK_CONFIG.TASK.GOAL_SENSOR_UUID:
-                    audiogoal_sensor = 'spectrogram'
-                else:
-                    raise ValueError(f"{self.config.TASK_CONFIG.TASK.GOAL_SENSOR_UUID} sensor is invalid for audio")
-
                 smt = self.actor_critic.net.smt_state_encoder
                 bp_class = BeliefPredictorDDP if belief_cfg.online_training else BeliefPredictor
                 self.belief_predictor = bp_class(
@@ -153,7 +141,7 @@ class DDPPOTrainer(PPOTrainer):
                     input_size=smt._input_size,
                     pose_indices=smt._pose_indices,
                     hidden_state_size=smt.hidden_state_size,
-                    num_audio_channels=self.envs.observation_spaces[0][audiogoal_sensor].shape[2],
+                    num_audio_channels=self.envs.observation_spaces[0][SpectrogramSensor.cls_uuid].shape[2],
                     num_env=self.envs.num_envs,
                     has_distractor_sound=has_distractor_sound,
                 ).to(device=self.device)
