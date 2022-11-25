@@ -18,7 +18,7 @@ from torchaudio.functional import melscale_fbanks
 
 from ss_baselines.common.utils import to_tensor
 from soundspaces.mp3d_utils import CATEGORY_INDEX_MAPPING
-from soundspaces.audio_utils import compute_spectrogram
+from soundspaces.audio_utils import compute_spectrogram, get_spectrogram_info
 from soundspaces.utils import next_greater_power_of_2
 
 
@@ -30,16 +30,16 @@ class AudioGoalDataset(Dataset):
         self.binaural_rir_dir = 'data/binaural_rirs/mp3d'
         self.source_sound_dir = f'data/sounds/semantic_splits/{split}'
         self.source_sound_dict = dict()
-        self.rir_sampling_rate = config.TASK_CONFIG.SIMULATOR.AUDIO.RIR_SAMPLING_RATE
+        spec_info = get_spectrogram_info(config)
+        self.rir_sampling_rate = spec_info["sampling_rate"]
         sound_files = os.listdir(self.source_sound_dir)
 
-        spec_config = config.TASK_CONFIG.TASK.SPECTROGRAM_SENSOR
-        self.hop_length = int(self.rir_sampling_rate * (spec_config.HOP_SIZE_MS / 1000.0))
-        self.win_length = int(self.rir_sampling_rate * (spec_config.WIN_SIZE_MS / 1000.0))
-        self.n_mels = int(spec_config.NUM_MELS)
-        self.n_fft = int(next_greater_power_of_2(self.win_length))
-        self.downsample = spec_config.DOWNSAMPLE
-        self.include_gcc_phat = bool(spec_config.GCC_PHAT)
+        self.hop_length = spec_info["hop_length"]
+        self.win_length = spec_info["win_length"]
+        self.n_mels = spec_info["n_mels"]
+        self.n_fft = spec_info["n_fft"]
+        self.downsample = spec_info["downsample"]
+        self.include_gcc_phat = spec_info["include_gcc_phat"]
         self.window = torch.hann_window(self.win_length, device="cpu")
         self.mel_scale = melscale_fbanks(
             n_freqs=(self.n_fft // 2) + 1,

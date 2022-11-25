@@ -1,7 +1,36 @@
 import numpy as np
 import torch
-from torchaudio.functional import amplitude_to_DB, melscale_fbanks
+from torchaudio.functional import amplitude_to_DB
 from typing import Optional
+
+from habitat.core.simulator import (
+    Simulator,
+)
+from habitat.config import Config
+from soundspaces.utils import next_greater_power_of_2
+
+
+def get_spectrogram_info(config: Config, sim: Optional[Simulator] = None):
+    if sim:
+        sampling_rate = sim.config.AUDIO.RIR_SAMPLING_RATE
+    else:
+        sampling_rate = config.TASK_CONFIG.SIMULATOR.AUDIO.RIR_SAMPLING_RATE
+    spec_config = config.TASK_CONFIG.TASK.SPECTROGRAM_SENSOR
+    win_length = int(sampling_rate * (spec_config.WIN_SIZE_MS / 1000.0))
+    n_mels = int(spec_config.NUM_MELS)
+    n_fft = int(next_greater_power_of_2(win_length))
+    return dict(
+        sampling_rate=sampling_rate,
+        win_length=win_length,
+        hop_length=int(sampling_rate * (spec_config.HOP_SIZE_MS / 1000.0)),
+        n_mels=n_mels,
+        n_fft=n_fft,
+        n_freqs=(n_mels if n_mels else ((n_fft // 2) + 1)),
+        downsample=spec_config.DOWNSAMPLE,
+        include_gcc_phat=bool(spec_config.GCC_PHAT),
+        n_channels=(2 + (1 if spec_config.GCC_PHAT else 0)),
+    )
+
 
 def compute_spectrogram(
     audio_data, win_length: int, hop_length: int, n_fft: int, n_mels: int,

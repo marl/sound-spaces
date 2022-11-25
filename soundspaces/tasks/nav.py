@@ -30,7 +30,7 @@ from habitat.tasks.utils import cartesian_to_polar
 from soundspaces.mp3d_utils import CATEGORY_INDEX_MAPPING
 from soundspaces.utils import convert_semantic_object_to_rgb, next_greater_power_of_2
 from soundspaces.mp3d_utils import HouseReader
-from soundspaces.audio_utils import compute_spectrogram
+from soundspaces.audio_utils import compute_spectrogram, get_spectrogram_info
 
 
 @registry.register_sensor
@@ -65,13 +65,14 @@ class SpectrogramSensor(Sensor):
     def __init__(self, *args: Any, sim: Simulator, config: Config, **kwargs: Any):
         self._sim = sim
         self._config = config
-        self._sample_rate = int(sim.config.AUDIO.RIR_SAMPLING_RATE)
-        self._hop_length = int(self._sample_rate * (config.HOP_SIZE_MS / 1000.0))
-        self._win_length = int(self._sample_rate * (config.WIN_SIZE_MS / 1000.0))
-        self._n_mels = int(config.NUM_MELS)
-        self._n_fft = int(next_greater_power_of_2(self._win_length))
-        self._downsample = config.DOWNSAMPLE
-        self._include_gcc_phat = bool(config.GCC_PHAT)
+        spec_info = get_spectrogram_info(config, sim=sim)
+        self._sample_rate = spec_info["sampling_rate"]
+        self._hop_length = spec_info["hop_length"]
+        self._win_length = spec_info["win_length"]
+        self._n_mels = spec_info["n_mels"]
+        self._n_fft = spec_info["n_fft"]
+        self._downsample = spec_info["downsample"]
+        self._include_gcc_phat = spec_info["include_gcc_phat"]
         self._window = torch.hann_window(self._win_length, device="cpu")
         self._mel_scale = melscale_fbanks(
             n_freqs=(self._n_fft // 2) + 1,
